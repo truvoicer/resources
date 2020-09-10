@@ -1,15 +1,28 @@
 import React, {Component, useState} from 'react';
 import {Field, Formik, isObject} from "formik";
-import {isSet} from "../../../library/utils";
 import Select from "react-select";
 import DatePicker from "react-datepicker";
 import FormList from "./form-components/FormList";
 
+export const isSet = (item) => {
+    if (typeof item === "undefined") {
+        return false
+    }
+    return true;
+}
+
+export const isObject = (object) => {
+    return typeof object === "object";
+}
+
 const FormBuilder = (props) => {
 
-    // Returns initial form state
-    // Iterates fields data and returns an object
-    // with the field name and initial value pairs.
+    /**
+     * Returns initial form state
+     * Iterates fields data and returns an object
+     * with the field name and initial value pairs.
+     * @returns {{}}
+     */
     const getInitialDataObject = () => {
         let initialValues = {};
         props.data.fields.map((item) => {
@@ -29,8 +42,12 @@ const FormBuilder = (props) => {
         return initialValues;   // Return initial form field values object
     }
 
-    // Returns initial value for form field
-    // depending on the field type
+    /**
+     * Returns initial value for form field
+     * depending on the field type
+     * @param item
+     * @returns {*}
+     */
     const getInitialValue = (item) => {
         let value;
         if (item.fieldType === "text") {
@@ -47,7 +64,10 @@ const FormBuilder = (props) => {
         return value;
     }
 
-
+    /**
+     * Returns an object of default form values for any select field
+     * @returns {{}}
+     */
     const getSelectDefaults = () => {
         let selectDefaults = {};
         props.data.fields.map((item) => {
@@ -69,6 +89,10 @@ const FormBuilder = (props) => {
         return selectDefaults;
     }
 
+    /**
+     * Returns an object of default form values for any date fields
+     * @returns {{}}
+     */
     const getDatesDefaults = () => {
         let datesDefaults = {};
         props.data.fields.map((item) => {
@@ -80,11 +104,21 @@ const FormBuilder = (props) => {
         return datesDefaults;
     }
 
+    // Set default form input field and  values state
     const [initialValues, setInitialValues] = useState(getInitialDataObject())
+    // set default form select field and values state
     const [selected, setSelected] = useState(getSelectDefaults())
+    // Set default form date field and values state
     const [dates, setDates] = useState(getDatesDefaults())
 
-
+    /**
+     * Validation function
+     * Returns error message or true if validation is successful
+     * @param rule
+     * @param values
+     * @param key
+     * @returns {string|boolean|*}
+     */
     const validationRules = (rule, values, key) => {
         switch (rule.type) {
             case "required":
@@ -134,6 +168,11 @@ const FormBuilder = (props) => {
         return true;
     }
 
+    /**
+     * Returns a field object from the form data by the name of the field
+     * @param name
+     * @returns {{}}
+     */
     const getFieldByName = (name) => {
         let fieldObject = {};
         props.data.fields.map(field => {
@@ -150,56 +189,58 @@ const FormBuilder = (props) => {
         })
         return fieldObject
     }
-    const getIgnoredFields = (values) => {
-        let ignoredFields = [];
-        Object.keys(values).map((key) => {
-            const field = getFieldByName(key);
-            field.subFields?.map((subField) => {
-                if ((field.fieldType === "checkbox" && !values[field.name]) ||
-                    (field.fieldType === "checkbox" && values[field.name] === "")) {
-                    ignoredFields.push(subField.name);
-                }
-            })
-        });
-        return ignoredFields;
-    }
+
+    /**
+     * Iterates through form field values and validates them
+     * Returns error message object for form fields
+     * @param values
+     * @returns {{}}
+     */
     const validateForm = (values) => {
         const errors = {};
-        const ignoredFields = getIgnoredFields(values);
         Object.keys(values).map((key) => {
             const field = getFieldByName(key);
-            if (!ignoredFields.includes(field.name)) {
-                const isAllowEmpty = field.validation?.rules?.filter(rule => rule.type === "allow_empty");
-                if (!isSet(isAllowEmpty) ||
-                    (Array.isArray(isAllowEmpty) && isAllowEmpty.length > 0 && values[field.name] !== "") ||
-                    (Array.isArray(isAllowEmpty) && isAllowEmpty.length === 0)
-                ) {
-                    field.validation?.rules?.map((rule) => {
-                        const validate = validationRules(rule, values, key);
-                        if (validate !== true) {
-                            errors[key] = validate
-                        }
-                    })
-                }
+            const isAllowEmpty = field.validation?.rules?.filter(rule => rule.type === "allow_empty");
+            if (!isSet(isAllowEmpty) ||
+                (Array.isArray(isAllowEmpty) && isAllowEmpty.length > 0 && values[field.name] !== "") ||
+                (Array.isArray(isAllowEmpty) && isAllowEmpty.length === 0)
+            ) {
+                field.validation?.rules?.map((rule) => {
+                    const validate = validationRules(rule, values, key);
+                    if (validate !== true) {
+                        errors[key] = validate
+                    }
+                })
             }
+
         })
         return errors;
     };
 
+    /**
+     * Handler for when form is submitted and has passed validation
+     * Passes form field values to the callback function set in props
+     * @param values
+     */
     const formSubmitHandler = (values) => {
-        const ignoredFields = getIgnoredFields(values);
         Object.keys(values).map((key) => {
             const field = getFieldByName(key);
             if (field.fieldType === "checkbox" && values[field.name] === "") {
                 values[field.name] = false;
             }
-            if (ignoredFields.includes(key)) {
-                values[key] = "";
-            }
         });
         props.submitCallback(values);
     }
 
+    /**
+     * Date field change handler
+     * Sets the value in the date fields state
+     * Sets the value to the form values state
+     * @param values
+     * @param key
+     * @param date
+     * @param e
+     */
     const dateChangeHandler = (values, key, date, e) => {
         setDates({
             [key]: date
@@ -207,6 +248,14 @@ const FormBuilder = (props) => {
         values[key] = date;
     }
 
+    /**
+     * Select field change handler
+     * Sets the value in the select fields state
+     * Sets the value to the form values state
+     * @param name
+     * @param values
+     * @param e
+     */
     const selectChangeHandler = (name, values, e) => {
         setSelected({
             [name]: e
@@ -215,10 +264,26 @@ const FormBuilder = (props) => {
         validateForm(values)
     }
 
+    /**
+     * List field callback when change event is fired on a list row
+     * Sets the form fields values state with list array
+     * @param values
+     * @param name
+     * @param data
+     */
     const listFieldCallback = (values, name, data) => {
         values[name] = data;
     }
 
+    /**
+     * Checks a form field for a "depends_on" object
+     * Returns true if "dependsOn" object is set and
+     * the parent field is equal to the value of the field name
+     * Returns false otherwise
+     * @param field
+     * @param values
+     * @returns {boolean}
+     */
     const dependsOnCheck = (field, values) => {
         let show = false;
         if (isSet(field.dependsOn)) {
@@ -233,6 +298,16 @@ const FormBuilder = (props) => {
         return show;
     }
 
+    /**
+     * Gets field row for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getFieldRow = (field, errors, touched, handleBlur, handleChange, values) => {
         return (
             <>
@@ -255,6 +330,16 @@ const FormBuilder = (props) => {
         )
     }
 
+    /**
+     * Gets date field for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getDateRow = (field, errors, touched, handleBlur, handleChange, values) => {
         return (
             <>
@@ -291,6 +376,16 @@ const FormBuilder = (props) => {
         )
     }
 
+    /**
+     * Gets list form field component for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getListRow = (field, errors, touched, handleBlur, handleChange, values) => {
         return (
             <>
@@ -320,6 +415,16 @@ const FormBuilder = (props) => {
         )
     }
 
+    /**
+     * Gets checkbox form field for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getCheckboxRow = (field, errors, touched, handleBlur, handleChange, values) => {
         return (
             <>
@@ -351,6 +456,16 @@ const FormBuilder = (props) => {
         )
     }
 
+    /**
+     * Gets select form field for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getSelectRow = (field, errors, touched, handleBlur, handleChange, values) => {
         let selectOptions;
         if (!isSet(props.selectOptions[field.name])) {
@@ -395,6 +510,17 @@ const FormBuilder = (props) => {
             </>
         )
     }
+
+    /**
+     * Gets input form field for display
+     * @param field
+     * @param errors
+     * @param touched
+     * @param handleBlur
+     * @param handleChange
+     * @param values
+     * @returns {JSX.Element}
+     */
     const getInputRow = (field, errors, touched, handleBlur, handleChange, values) => {
         return (
             <>
@@ -428,6 +554,9 @@ const FormBuilder = (props) => {
         )
     }
 
+    /**
+     * Formik component with form data
+     */
     return (
         <Formik
             initialValues={initialValues}

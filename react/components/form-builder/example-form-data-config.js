@@ -1,6 +1,6 @@
 export const FormConfigData = (
     update = false,     //Boolean -Specify if updating data or creating new data
-    fieldValue2 = null,    //field value
+    input_text_field = null,    //field value
     fieldValue1 = null     //field value
 ) => {
     //Must return an object with a fields array.
@@ -9,9 +9,9 @@ export const FormConfigData = (
         fields: [
             {
                 //Field name
-                name: "key_name",
+                name: "input_text_field",
                 //Label shown for field
-                label: "Key Name",
+                label: "Input Text Field Example",
                 //Field Type
                 //Field type options: text, select, date, checkbox, list
                 fieldType: "text",
@@ -20,7 +20,7 @@ export const FormConfigData = (
                 //Placeholder shown for input
                 placeHolder: "Enter a key name",
                 //Initial value for field
-                value: fieldValue2? fieldValue2 : "",
+                value: input_text_field? input_text_field : "",
                 //Validation rules
                 //Options: required, email, alphanumeric, length, password, match(regex pattern)
                 validation: {
@@ -35,6 +35,40 @@ export const FormConfigData = (
                         }
                     ]
                 }
+            },
+            {
+                label: "Checkbox Input Example",
+                name: "checkbox_input",
+                fieldType: "checkbox",
+                value: "1",
+                checked: checkbox_input,
+                checkboxType: "true_false",
+                subFields: [
+                    {
+
+                        dependsOn: {    // Config for when the sub field should be shown
+                            field: "checkbox_input",    // Name of field to check for value
+                            value: true     // Value the field has to have to show this sub field
+                        },
+                        name: "subfield_input",
+                        label: "Sub field input Example",
+                        type: "text",
+                        fieldType: "text",
+                        placeHolder: "Enter extra data to append",
+                        value: subfield_input? subfield_input : ""
+                    },
+                ]
+            },
+            {
+                label: "List item?",    //Array list field
+                name: "list_item",
+                fieldType: "list",
+            },
+            {
+                name: "select_field",
+                label: "Select Field Example",
+                fieldType: "select",
+                multi: false,   //Multiple selection or single
             },
         ]
     }
